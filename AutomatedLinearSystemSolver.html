@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Automated Linear System Solver</title>
+
+<style>
+/* This section sets the base visual style for the page including the dark background and centered layout. */
+body {
+    font-family: system-ui, sans-serif;
+    color: aliceblue;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center; 
+    min-height: 100vh;
+    background-color: #000000e3;
+}
+
+/* The container class creates the main card structure with a gradient background and soft shadows. */
+.container {
+    max-width: 960px;
+    padding: 28px 32px;
+    background: linear-gradient(180deg, rgb(36, 36, 36), rgb(28, 28, 28));
+    border-radius: 14px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Sections provide a consistent border and spacing for different parts of the user interface. */
+.section {
+    margin-top: 22px;
+    padding: 18px 20px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 2.5px solid rgb(113, 97, 138); 
+}
+
+/* The highlight-solution class adds extra emphasis to the final results and analysis panels. */
+.highlight-solution {
+    border: 3px solid rgb(113, 97, 138) !important;
+    box-shadow: 0 0 15px rgba(113, 97, 138, 0.3);
+}
+
+/* Tables are styled to ensure the matrix grid is clearly readable with appropriate spacing. */
+table {
+    border-collapse: separate;
+    border-spacing: 6px;
+    margin: 12px auto;
+}
+
+td { border-radius: 8px; }
+
+/* Input fields are designed to be transparent and minimalist while matching the purple theme. */
+input, td {
+    width: 48px;
+    height: 40px;
+    padding: 0;
+    background-color: transparent;
+    color: aliceblue;
+    border: 1.5px solid rgb(113, 97, 138);
+    border-radius: 6px;
+    text-align: center;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+}
+
+/* These rules remove the default spin buttons from number inputs for a cleaner aesthetic. */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+input:focus { border-color: rgb(174, 162, 194); }
+
+/* Buttons use a solid purple color and change brightness on hover to provide feedback. */
+button {
+    padding: 10px 20px;
+    background-color: rgb(113, 97, 138);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    margin: 8px;
+}
+
+button:hover { background-color: rgb(174, 162, 194); }
+
+.important { color: rgb(210, 195, 235); font-weight: bold; }
+
+/* The legend grid organizes the explanations of row operation types into a responsive layout. */
+.legend-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+    font-size: 0.85rem;
+    text-align: left;
+}
+
+.legend-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px;
+    border-radius: 8px;
+    border-left: 3px solid rgb(113, 97, 138);
+}
+
+.conclusion-box {
+    border: 1.5px solid rgb(113, 97, 138);
+    padding: 12px;
+    border-radius: 8px;
+    display: inline-block;
+    margin-top: 10px;
+    background: rgba(113, 97, 138, 0.1);
+    color: aliceblue;
+    font-style: normal;
+}
+
+/* The steps container manages the layout for the mathematical history of the elimination process. */
+.steps-container {
+    margin-top: 20px;
+    border: 2.5px solid rgb(113, 97, 138);
+    border-radius: 12px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.steps-panel {
+    max-height: 420px;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+/* The step class styles the individual blocks that represent each row operation. */
+.step {
+    margin-bottom: 12px;
+    padding: 12px;
+    border: 1.5px solid rgb(113, 97, 138);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    text-align: left;
+}
+
+.step-header {
+    cursor: pointer;
+    font-weight: bold;
+    color: rgb(210, 195, 235); 
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+/* The arrow indicates that the step header is interactive and can be expanded or collapsed. */
+.step-header::after {
+    content: '\25BC';
+    font-size: 0.75rem;
+    opacity: 0.6;
+    transition: transform 0.3s;
+    margin-left: auto;
+}
+
+.step.open .step-header::after { transform: rotate(180deg); }
+
+.step-description {
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+    color: aliceblue;
+    line-height: 1.4;
+    opacity: 0.9;
+}
+
+.step-content { display: none; padding-top: 10px; }
+.step.open .step-content { display: block; }
+
+/* The augmented pseudo-element creates the vertical line visually separating coefficients from constants. */
+.augmented { 
+    position: relative; 
+}
+.augmented::before {
+    content: '';
+    position: absolute;
+    left: -8px; 
+    top: -4px;
+    bottom: -4px;
+    width: 3px; 
+    background-color: rgb(174, 162, 194); 
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+    <h1>Automated Linear System Solver</h1>
+
+    <div class="section">
+        <p>
+            This <span class="important">Automated Linear System Solver</span> automatically performs
+            <span class="important">Gaussian Elimination</span> on an augmented matrix to transform it into
+            its <b>Reduced Row Echelon Form (RREF)</b>.
+        </p>
+    </div>
+
+    
+
+    <div class="section">
+        <h3 class="important">The Augmented Matrix Configuration</h3>
+        <p style="font-size: 0.9rem; opacity: 0.9; max-width: 700px; margin: 0 auto;">
+            The <span class="important">Augmented Matrix</span> is a compact numerical representation of your linear system which contains:<br><br>
+            <span class="important">Rows</span>: Each row corresponds to one equation in the system.<br>
+            <span class="important">Coefficient Columns</span>: These columns contain the multipliers for each variable.<br>
+            <span class="important">Constant Column</span>: The final column represents the constant values.
+        </p>
+        <hr style="border: 0; border-top: 1px solid rgba(113, 97, 138, 0.4); margin: 20px 0;">
+        
+        <p style="font-size: 0.85rem; margin-bottom: 10px;">Enter the dimensions of the augmented matrix (<span class="important">m rows</span> and <span class="important">n columns</span>, where <span class="important">m ≤ 10</span> and <span class="important">n ≤ 10</span>).</p>
+
+        <label for="rows">Rows (m):</label>
+        <input type="number" id="rows" value="3" min="1" max="10">
+
+        <label for="cols">Columns (n):</label>
+        <input type="number" id="cols" value="4" min="1" max="10">
+        <br><br>
+
+        <button onclick="generateMatrix()">Generate Matrix</button>
+        <button onclick="randomizeValues()">Randomize Values</button>
+    </div>
+
+    <div class="section" id="matrixContainer"></div>
+
+    <div class="section highlight-solution" id="finalResultPanel" style="display: none;">
+        <h3 class="important">Final Reduced Row Echelon Form</h3>
+        <div id="rrefOutput"></div>
+        <button id="copyBtn" onclick="copyMatrix()">Copy Matrix Values</button>
+    </div>
+
+    <div id="analysisPanel" class="section highlight-solution" style="display: none;">
+        <h3 class="important">Solution Analysis</h3>
+        <div id="analysisContent"></div>
+    </div>
+
+    <div id="stepsContainer" class="steps-container" style="display: none;">
+        <h3 class="important">Step-by-Step Elimination</h3>
+        
+        <div class="legend-grid">
+            <div class="legend-item">
+                <b class="important">Type I: E<sub>ij</sub></b><br>
+                Swap row <span class="important">i</span> and row <span class="important">j</span>.
+            </div>
+            <div class="legend-item">
+                <b class="important">Type II: E<sub>i</sub>(α)</b><br>
+                Multiply row <span class="important">i</span> by a nonzero scalar <span class="important">α</span>.
+            </div>
+            <div class="legend-item">
+                <b class="important">Type III: E<sub>ij</sub>(α)</b><br>
+                Replace row <span class="important">i</span> by adding <span class="important">α</span> times row <span class="important">j</span>.
+            </div>
+        </div>
+
+        <div class="steps-panel" id="stepsOutput"></div>
+    </div>
+
+</div>
+
+<script>
+/* EPS serves as a threshold to correctly handle floating point precision errors during calculations. */
+const EPS = 1e-10;
+let steps = [];
+let finalMatrix = null;
+
+/* This function determines if a number is close enough to zero to be considered zero. */
+function isZero(x) { return Math.abs(x) < EPS; }
+
+/* This function cleans a number by returning exactly zero if it is within the threshold. */
+function clean(x) { return isZero(x) ? 0 : x; }
+
+/* This function generates the interactive HTML table based on the row and column inputs. */
+function generateMatrix() {
+    const m = +document.getElementById('rows').value;
+    const n = +document.getElementById('cols').value;
+    steps = [];
+    document.getElementById('finalResultPanel').style.display = 'none';
+    document.getElementById('analysisPanel').style.display = 'none';
+    document.getElementById('stepsContainer').style.display = 'none';
+
+    let html = `
+    <div style="font-size: 0.9rem; margin-bottom: 15px; text-align: center; border: 0px rgb(113, 97, 138); padding: 10px; border-radius: 8px;">
+        <b class="important">Matrix Input Instructions:</b><br><br>
+        Click inside any box to enter a <span class="important">Coefficient</span> or <span class="important">Constant</span>.
+        Use your keyboard to type numbers. Decimals and negative signs are allowed.
+        Press <span class="important">"Solve to RREF"</span> once all values are entered.
+    </div>
+    <table id="matrixTable">`;
+    for (let i = 0; i < m; i++) {
+        html += '<tr>';
+        for (let j = 0; j < n; j++) {
+            const isLastCol = (j === n - 1);
+            html += `<td class="${isLastCol ? 'augmented' : ''}"><input type="number" value="0" step="any"></td>`;
+        }
+        html += '</tr>';
+    }
+    html += `</table><div style="margin-top: 12px;"><button onclick="solveRREF()">Solve to RREF</button><button onclick="clearMatrix()">Clear Matrix</button></div>`;
+    document.getElementById('matrixContainer').innerHTML = html;
+}
+
+/* This function fills the matrix with random values to allow for quick testing of the solver. */
+function randomizeValues() {
+    const m = +document.getElementById('rows').value;
+    const n = +document.getElementById('cols').value;
+    const inputs = document.querySelectorAll('#matrixTable input');
+    
+    const mode = Math.random(); 
+    if (mode < 0.3 && m > 1) { 
+        const zeroRow = Math.floor(Math.random() * m);
+        for(let i=0; i<m; i++){
+            for(let j=0; j<n; j++){
+                inputs[i*n + j].value = (i === zeroRow) ? 0 : Math.floor(Math.random() * 21) - 10;
+            }
+        }
+    } else if (mode < 0.6 && m > 1) { 
+        const rowA = 0;
+        const rowB = m - 1;
+        const vals = [];
+        for(let j=0; j<n; j++) vals.push(Math.floor(Math.random() * 11) - 5);
+        for(let i=0; i<m; i++){
+            for(let j=0; j<n; j++){
+                inputs[i*n + j].value = (i === rowB) ? vals[j] : (i === rowA ? vals[j] : Math.floor(Math.random() * 11) - 5);
+            }
+        }
+    } else { 
+        inputs.forEach(input => input.value = Math.floor(Math.random() * 21) - 10);
+    }
+}
+
+/* This function reads the matrix data from the table and initiates the solving process. */
+function solveRREF() {
+    const table = document.getElementById("matrixTable");
+    if (!table) return;
+
+    const A = [...table.rows].map(row =>
+        [...row.cells].map(cell => {
+            const input = cell.querySelector('input');
+            return input ? Number(input.value) : 0;
+        })
+    );
+
+    steps = [];
+    recordStep("Initial Matrix Configuration", "This represents the original augmented matrix before any Gaussian elimination operations.", A);
+    const R = gaussianEliminationToRREF(A);
+    finalMatrix = R;
+
+    document.getElementById('finalResultPanel').style.display = 'block';
+    document.getElementById('analysisPanel').style.display = 'block';
+    document.getElementById('stepsContainer').style.display = 'block';
+
+    displayFinalRREF(R);
+    const analysis = analyzeSolution(R);
+    
+    document.getElementById('analysisContent').innerHTML = `
+        <p>Calculated Matrix Rank: <span class="important">${analysis.rank}</span></p>
+        <div class="conclusion-box">
+            <span class="important">${analysis.typeTitle}</span>
+            <div style="margin-top: 12px; color: white;">${analysis.explanation}</div>
+        </div>
+    `;
+    displaySteps();
+}
+
+/* This function captures a snapshot of the current matrix state to be displayed in the steps log. */
+function recordStep(op, desc, A) {
+    steps.push({ operation: op, description: desc, matrix: A.map(r => [...r]) });
+}
+
+/* This function contains the logic for Gaussian Elimination to transform the matrix into RREF. */
+function gaussianEliminationToRREF(A) {
+    const m = A.length, n = A[0].length;
+    let lead = 0;
+
+    for (let r = 0; r < m && lead < n - 1; r++) {
+        let i = r;
+        while (i < m && isZero(A[i][lead])) i++;
+        if (i === m) { lead++; r--; continue; }
+
+        if (i !== r) {
+            [A[i], A[r]] = [A[r], A[i]];
+            recordStep(`Type I: E<sub>${r+1}${i+1}</sub>`, `Swap row ${r+1} and row ${i+1} to position a non-zero element in the pivot column.`, A);
+        }
+
+        const pivot = A[r][lead];
+        if (!isZero(pivot - 1)) {
+            const alpha = 1 / pivot;
+            for (let j = 0; j < n; j++) A[r][j] *= alpha;
+            recordStep(`Type II: E<sub>${r+1}</sub>(${alpha.toFixed(2)})`, `Multiply row ${r+1} by ${alpha.toFixed(2)} to normalize the leading element to one.`, A);
+        }
+
+        for (let k = 0; k < m; k++) {
+            if (k !== r) {
+                const factor = A[k][lead];
+                if (!isZero(factor)) {
+                    const alpha = -factor;
+                    for (let j = 0; j < n; j++) A[k][j] += alpha * A[r][j];
+                    recordStep(`Type III: E<sub>${k+1}${r+1}</sub>(${alpha.toFixed(2)})`, `Replace row ${k+1} by adding ${alpha.toFixed(2)} times row ${r+1} to eliminate the element in column ${lead+1}.`, A);
+                }
+            }
+        }
+        lead++;
+    }
+    return A;
+}
+
+/* This function displays the final reduced matrix in a formatted table for the user. */
+function displayFinalRREF(A) {
+    let html = '<table>';
+    A.forEach(r => {
+        const lastIdx = r.length - 1;
+        html += '<tr>' + r.map((v, idx) => `<td class="${idx === lastIdx ? 'augmented' : ''}">${clean(v).toFixed(4).replace(/\.?0+$/, '')}</td>`).join('') + '</tr>';
+    });
+    html += '</table>';
+    document.getElementById('rrefOutput').innerHTML = html;
+}
+
+/* This function copies the raw values of the final matrix to the user's clipboard. */
+function copyMatrix() {
+    if (!finalMatrix) return;
+    const text = finalMatrix.map(row => row.map(v => clean(v).toFixed(4).replace(/\.?0+$/, '')).join('\t')).join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.innerText = "Copied!";
+        setTimeout(() => btn.innerText = "Copy Matrix Values", 2000);
+    });
+}
+
+/* This function creates the HTML content for the step-by-step mathematical breakdown. */
+function displaySteps() {
+    let html = "";
+    steps.forEach((s, idx) => {
+        html += `
+            <div class="step" onclick="this.classList.toggle('open')">
+                <div class="step-header">
+                    Step ${idx}: ${s.operation}
+                </div>
+                <div class="step-description">${s.description}</div>
+                <div class="step-content">
+                    <table style="margin: 12px auto;">`;
+        s.matrix.forEach(row => {
+            const lastIdx = row.length - 1;
+            html += '<tr>' + row.map((v, idx) => `<td class="${idx === lastIdx ? 'augmented' : ''}">${clean(v).toFixed(2)}</td>`).join('') + '</tr>';
+        });
+        html += `</table>
+                </div>
+            </div>`;
+    });
+    document.getElementById('stepsOutput').innerHTML = html;
+}
+
+/* This function evaluates the final matrix to determine if the system has unique, infinite, or no solutions. */
+function analyzeSolution(R) {
+    const m = R.length, n = R[0].length, vars = n - 1;
+    let rank = 0;
+    for (let r = 0; r < m; r++) if (R[r].slice(0, -1).some(v => !isZero(v))) rank++;
+
+    const inconsistent = R.some(row => row.slice(0, -1).every(isZero) && !isZero(row[n-1]));
+    
+    if (inconsistent) {
+        return { 
+            rank, 
+            typeTitle: "Conclusion: No Solution",
+            explanation: "The system is <b>inconsistent</b> because at least one row reduces to the form <b>0 = c</b> (where c ≠ 0). This creates a <b>contradiction</b>, meaning <b>no values</b> can satisfy all equations." 
+        };
+    }
+    if (rank === vars) {
+        return { 
+            rank, 
+            typeTitle: "Conclusion: Unique Solution",
+            explanation: "The <b>rank equals</b> the number of variables. Since every variable corresponds to a <b>pivot column</b>, there are <b>no free variables</b>, resulting in <b>exactly one solution</b>." 
+        };
+    }
+    return { 
+        rank, 
+        typeTitle: "Conclusion: Infinitely Many Solutions",
+        explanation: "The <b>rank is less</b> than the number of variables. This leaves <b>at least one free variable</b>, which can take <b>any value</b>, creating <b>infinitely many valid solution sets</b>." 
+    };
+}
+
+/* This function clears all values from the input table and resets the results view. */
+function clearMatrix() {
+    document.querySelectorAll('#matrixTable input').forEach(i => i.value = 0);
+    document.getElementById('finalResultPanel').style.display = 'none';
+    document.getElementById('analysisPanel').style.display = 'none';
+    document.getElementById('stepsContainer').style.display = 'none';
+}
+
+/* The generateMatrix function is triggered when the window loads to set up the default view. */
+window.onload = generateMatrix;
+</script>
+</body>
+</html>
