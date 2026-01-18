@@ -11,10 +11,8 @@ The goal of this phase is to reach *Row Echelon Form (REF)*, creating a "stairca
 - **Elimination Below (Type III):** Multiples of the pivot row are added to all rows below it to create zeros in the rest of the column.
 ### Phase 2: Backward Substitution (RREF)
 To reach *Reduced Row Echelon Form (RREF)*, the algorithm ensures that each column containing a leading one has zeros in every other position.
-#### Elimination Above (Type III)
-Starting from the last pivot and moving upwards, the algorithm adds multiples of the pivot row to the rows above it to zero out those entries.
-#### Final Cleanup
-Any values extremely close to zero (due to floating-point precision) are cleaned to appear as exactly 0 for the user.
+- **Elimination Above (Type III):** Starting from the last pivot and moving upwards, the algorithm adds multiples of the pivot row to the rows above it to zero out those entries.
+- **Final Cleanup:** Any values extremely close to zero (due to floating-point precision) are cleaned to appear as exactly 0 for the user.
 ## Technical Features
 ### Mathematical Foundation
 The solver is built upon the three **Elementary Row Operations** used within the **Gaussian Elimination** framework defined in linear algebra:
