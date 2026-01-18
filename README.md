@@ -5,7 +5,7 @@ A web-based tool that automatically transforms an augmented matrix into its Redu
 The application implements a systematic version of Gaussian Elimination to transform any input matrix into its unique **Reduced Row Echelon Form (RREF)**.
 ### Phase 1: Forward Elimination (REF)
 The goal of this phase is to reach *Row Echelon Form (REF)*, creating a "staircase" pattern of leading ones.
-#### Pivot Selection
+- Pivot Selection
 The algorithm searches for the first non-zero entry in the current column (the pivot column).
 #### Row Swapping (Type I) 
 If the entry in the current row is zero, the algorithm swaps it with a lower row that has a non-zero entry in that column.
